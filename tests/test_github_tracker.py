@@ -73,6 +73,10 @@ def _client(monkeypatch, *, items=None):
             return {"data": {"node": {"fields": _page([{"id": "status-1", "name": "Status", "options": _options()}])}}}
         if "items(" in document:
             return {"data": {"node": {"items": _page(items if items is not None else [_item()])}}}
+        if "labels(first:100,query" in document:
+            return {"data": {"node": {"labels": {"nodes": [{"id": "label-loop", "name": "loop"}]}}}}
+        if "addLabelsToLabelable" in document:
+            return {"data": {"addLabelsToLabelable": {"labelable": {"__typename": "Issue"}}}}
         if "updateProjectV2ItemFieldValue" in document:
             return {"data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "item-1"}}}}
         raise AssertionError(document)
@@ -157,6 +161,18 @@ def test_github_status_move_rejects_wrong_project_scope(monkeypatch):
 
     with pytest.raises(GitHubError, match="configured GitHub Project"):
         client.move_state(issue.id, "other-project", "Todo")
+
+
+def test_github_label_mutation_selects_a_valid_interface_field(monkeypatch):
+    client, calls = _client(monkeypatch)
+    client.resolve_scope()
+    issue, = client.issues_in_states(["Backlog"])
+
+    assert client.add_label(issue.id, issue.scope, "loop") is True
+
+    document, _ = calls[-1]
+    assert "addLabelsToLabelable" in document
+    assert "labelable{__typename}" in document
 
 
 def test_github_project_rejects_duplicate_issue_item(monkeypatch):
