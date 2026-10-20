@@ -441,7 +441,7 @@ class GitHubClient:
 
     def _add_label(self, issue_id: str, label_id: str) -> bool:
         return self._mutate(
-            "mutation($issue:ID!,$labels:[ID!]!){addLabelsToLabelable(input:{labelableId:$issue,labelIds:$labels}){labelable{id}}}",
+            "mutation($issue:ID!,$labels:[ID!]!){addLabelsToLabelable(input:{labelableId:$issue,labelIds:$labels}){labelable{__typename}}}",
             {"issue": issue_id, "labels": [label_id]}, "addLabelsToLabelable",
         )
 
@@ -455,7 +455,7 @@ class GitHubClient:
         if not self.cfg.assignee_id:
             return True
         return self._mutate(
-            "mutation($i:ID!,$a:[ID!]!){addAssigneesToAssignable(input:{assignableId:$i,assigneeIds:$a}){assignable{id}}}",
+            "mutation($i:ID!,$a:[ID!]!){addAssigneesToAssignable(input:{assignableId:$i,assigneeIds:$a}){assignable{__typename}}}",
             {"i": issue_id, "a": [self.cfg.assignee_id]}, "addAssigneesToAssignable",
         )
 
