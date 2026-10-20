@@ -37,6 +37,7 @@ the coding-agent CLI you intend to use separately.
 git clone https://github.com/jpshelley/agent-loop.git
 cd agent-loop
 python -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
 .venv/bin/pip install -e '.[dev]'
 ```
 
