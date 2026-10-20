@@ -21,6 +21,59 @@ _ENDPOINT = "https://api.github.com/graphql"
 _CI_FIX_MARKER = re.compile(r"agent-loop-ci-fix:([0-9a-f]{7,40})")
 _APPROVAL_WAIT_MARKER = re.compile(r"agent-loop-approval-wait:([0-9a-f]{7,40})")
 _APPROVAL_WAIT_HANDOFF_MARKER = re.compile(r"agent-loop-approval-handoff:([0-9a-f]{7,40})")
+
+_PROJECT_ITEMS_QUERY = """
+query($id: ID!, $status: String!, $after: String) {
+  node(id: $id) {
+    ... on ProjectV2 {
+      items(first: 25, after: $after) {
+        nodes {
+          id
+          type
+          isArchived
+          fieldValueByName(name: $status) {
+            ... on ProjectV2ItemFieldSingleSelectValue {
+              name
+              optionId
+            }
+          }
+          content {
+            ... on Issue {
+              id
+              number
+              title
+              url
+              body
+              state
+              repository { id nameWithOwner }
+              labels(first: 100) { nodes { name } }
+              subIssues(first: 1) { totalCount }
+              blockedBy(first: 100) {
+                nodes { state }
+                pageInfo { hasNextPage endCursor }
+              }
+              closedByPullRequestsReferences(first: 100, includeClosedPrs: true) {
+                nodes { url }
+                pageInfo { hasNextPage endCursor }
+              }
+              timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT]) {
+                nodes {
+                  ... on CrossReferencedEvent {
+                    source { ... on PullRequest { url } }
+                  }
+                }
+                pageInfo { hasNextPage endCursor }
+              }
+            }
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+}
+"""
+
 class GitHubError(TrackerError):
     """Raised when GitHub's GraphQL API cannot provide a reliable answer."""
 
@@ -173,15 +226,7 @@ class GitHubClient:
         cursors: set[str] = set()
         while True:
             response = self.query(
-                "query($id:ID!,$status:String!,$after:String){node(id:$id){...on ProjectV2{"
-                "items(first:25,after:$after){nodes{id type isArchived "
-                "fieldValueByName(name:$status){...on ProjectV2ItemFieldSingleSelectValue{name optionId}} "
-                "content{...on Issue{id number title url body state repository{id nameWithOwner} "
-                "labels(first:100){nodes{name}} subIssues(first:1){totalCount} "
-                "blockedBy(first:100){nodes{state} pageInfo{hasNextPage endCursor}} "
-                "closedByPullRequestsReferences(first:100,includeClosedPrs:true){nodes{url} pageInfo{hasNextPage endCursor}} "
-                "timelineItems(first:100,itemTypes:[CROSS_REFERENCED_EVENT]){nodes{...on CrossReferencedEvent{source{...on PullRequest{url}}}} pageInfo{hasNextPage endCursor}}}}}}"
-                "pageInfo{hasNextPage endCursor}}}}}",
+                _PROJECT_ITEMS_QUERY,
                 {"id": self.project_id, "status": getattr(self.cfg, "github_status_field", "Status"), "after": cursor},
             )
             items = (((response.get("data") or {}).get("node") or {}).get("items"))
