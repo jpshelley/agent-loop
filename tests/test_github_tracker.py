@@ -6,7 +6,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from agentloop.github_tracker import GitHubClient, GitHubError
+from agentloop.github_tracker import GitHubClient, GitHubError, _PROJECT_ITEMS_QUERY
+
+
+def test_project_items_query_has_balanced_graphql_delimiters():
+    assert _PROJECT_ITEMS_QUERY.count("{") == _PROJECT_ITEMS_QUERY.count("}")
+    assert _PROJECT_ITEMS_QUERY.count("(") == _PROJECT_ITEMS_QUERY.count(")")
 
 
 def _cfg(**overrides):
@@ -66,7 +71,7 @@ def _client(monkeypatch, *, items=None):
             return {"data": {"repositoryOwner": {"projectV2": {"id": "project-1", "title": "Loop"}}}}
         if "fields(first:100" in document:
             return {"data": {"node": {"fields": _page([{"id": "status-1", "name": "Status", "options": _options()}])}}}
-        if "items(first:25" in document:
+        if "items(" in document:
             return {"data": {"node": {"items": _page(items if items is not None else [_item()])}}}
         if "updateProjectV2ItemFieldValue" in document:
             return {"data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "item-1"}}}}
@@ -121,7 +126,7 @@ def test_github_project_rejects_repeated_item_cursor(monkeypatch):
     original = client.query
 
     def query(document, variables=None):
-        if "items(first:25" in document:
+        if "items(" in document:
             item = _item() if variables["after"] is None else _item(
                 id="item-2", content={**_item()["content"], "id": "issue-8", "number": 8}
             )
