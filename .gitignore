@@ -1,0 +1,21 @@
+.DS_Store
+
+# Claude Code local state + the loop's own worktrees. The dispatcher maps
+# repo:agent-loop to THIS checkout, so self-improvement tickets create linked
+# worktrees at .worktrees/agent-loop/<KEY> (and, before the harness-agnostic
+# rename, .claude/worktrees/agent-loop/<KEY>) right inside the controlling
+# checkout. Ignore both so those — and any Claude Code local settings under
+# .claude/ — never dirty the checkout the loop runs from. Nothing under either
+# is tracked.
+.claude/
+.worktrees/
+
+# Python (the harborloop port)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/
+venv/

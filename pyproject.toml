@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agent-loop"
+version = "0.1.0"
+description = "Tracker-driven tmux orchestration loop for coding-agent sessions."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+# Runtime deps: NONE. The looper shells out to git, tmux, gh, and the selected harness, and talks to
+# Linear over HTTPS with the stdlib. Keeping it dependency-free makes it as self-contained
+# as the bash it replaces.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+agent-loop = "agentloop.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentloop"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

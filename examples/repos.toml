@@ -1,0 +1,49 @@
+# Repo routing for the loop.  Copy to ~/.agent-loop/repos.toml and edit.
+#
+# The loop resolves each issue's `repo:<label>` Linear label to a local checkout,
+# then creates worktrees, pushes branches, and opens pull requests there.  There is
+# deliberately no built-in default: a wrong guess opens a plausible-looking pull
+# request in the wrong repository, so an unmapped label is refused outright.
+#
+# Override the location with AGENT_LOOP_REPOS_FILE.
+
+[repos]
+# <label> = <path>.  Absolute, ~-relative, and $VAR paths are used as-is; anything
+# else resolves against the workspace dir (AGENT_LOOP_WORKSPACE_DIR, default
+# ~/Development).  The label is the suffix of the Linear `repo:<label>` label.
+web   = "~/src/web"
+infra = "~/src/infra"
+
+# Table entries let a checkout use a different named remote and PR base branch.
+# String entries above keep the defaults: remote = "origin", base_branch = "main".
+# A remote is a configured Git remote name, not a URL or filesystem path.
+[repos.api]
+path = "~/src/api"
+remote = "upstream"
+base_branch = "develop"
+
+[aliases]
+# Retired labels that should route to the checkout they merged into.  Old tickets
+# keep working without re-labelling.  An alias may not also be a [repos] entry.
+backend = "api"
+
+[descriptions]
+# One line per repo, used to build the dispatch classifier's prompt when an issue
+# arrives with no `repo:` label.  Optional, but the classifier is only as good as
+# these are — without them it sees bare label names and little else.
+api   = "backend services, API, background jobs"
+web   = "customer-facing web UI"
+infra = "Terraform, cloud resources, DNS, deploy pipelines"
+
+[settings]
+# Fallback when the classifier cannot name a repo.  Leave unset to have such issues
+# stay queued for a human instead of landing somewhere arbitrary.
+# default_repo = "api"
+
+# Repo whose merged PRs the design loop reviews.  Unset => the design loop no-ops.
+# The GitHub owner/repo is read from this checkout's configured remote.
+design_repo = "web"
+
+# Work in these repos must carry deployed evidence on the Linear issue before the
+# deploy loop will ship it — merge plus green CI is not enough for infra changes.
+infra_repos = ["infra"]
