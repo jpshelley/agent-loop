@@ -133,6 +133,15 @@ agent-loop doctor --tracker github
 See [tracker adapters](docs/tracker-adapters.md#github-issues-and-projects) for
 permissions, workflow-state mapping, and the queue contract.
 
+For a team Project with a different lifecycle, start with the standalone
+[read-only eligibility preview](docs/github-preview.md). It supports configurable
+Ready status, per-user ownership, parent opt-in inheritance, milestone filters,
+and explicit issue-to-code repository routes without changing the live loops:
+
+```bash
+agent-loop preview --profile /path/to/github-preview.toml --json
+```
+
 ### Linear
 
 ```bash
