@@ -1,0 +1,22 @@
+# Standalone, read-only selection profile. This does not configure live loops.
+# Copy to a local file and replace these example values.
+[project]
+owner = "your-org"
+number = 44
+repositories = ["your-org/planning"]
+status_field = "Status"
+
+[selection]
+assignee = "your-github-username"
+ready_status = "Ready"
+label = "loop"
+inherit_parent = true
+# Optional milestone filter. Numbers belong to the issue repository, not to a
+# Project. An empty list allows any milestone, including none.
+milestones = [] # e.g. ["your-org/planning#12"]
+
+# The Project Repository field identifies the issue's home, which may be a
+# planning-only repository. Explicitly choose the code repository to preview.
+# This first slice routes all Issues from a source repository to one code repo.
+[repository_routes]
+"your-org/planning" = "your-org/application"

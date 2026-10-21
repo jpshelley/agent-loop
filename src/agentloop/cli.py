@@ -11,6 +11,7 @@ loop has the key regardless of tmux's env-inheritance quirk.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -115,6 +116,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     init.add_argument("--config-dir", type=Path, help="directory to create (defaults to ~/.agent-loop)")
     init.add_argument("--replace", action="store_true", help="overwrite existing env and repos.toml")
+    preview = sub.add_parser("preview", help="explain GitHub Project eligibility without running a loop")
+    preview.add_argument("--profile", required=True, type=Path, help="read-only GitHub selection profile (TOML)")
+    preview.add_argument("--json", action="store_true", help="print machine-readable decisions")
     return p
 
 
@@ -201,6 +205,29 @@ def _build_config(which: str, args) -> Config:
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     which = args.which
+    if which == "preview":
+        # Deliberately bypass _build_config: no executable env sourcing, log
+        # directories, repository discovery, harness validation, or loop ticks.
+        from agentloop.preview import PreviewClient, load_profile
+
+        try:
+            profile = load_profile(args.profile)
+            token = os.environ.get("AGENT_LOOP_GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+            if not token:
+                raise ValueError("export AGENT_LOOP_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN for preview")
+            decisions = PreviewClient(token).run(profile)
+        except (ValueError, tracker.TrackerError) as error:
+            print(f"preview failed: {error}", file=sys.stderr)
+            return 1
+        if args.json:
+            print(json.dumps({"read_only": True, "decisions": [decision.to_dict() for decision in decisions]}, indent=2))
+        else:
+            for decision in decisions:
+                result = "eligible" if decision.eligible else "skipped: " + ", ".join(decision.reasons)
+                print(f"{decision.identifier}: {result}")
+            eligible = sum(decision.eligible for decision in decisions)
+            print(f"Read-only snapshot: {eligible} eligible of {len(decisions)} Issue items. No work claimed.")
+        return 0
     if which == "init":
         try:
             repositories = [onboarding.parse_repo_spec(value) for value in args.repo]
